@@ -21,7 +21,13 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
+      ],
+      "package": "com.samcux.schoolai"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,6 +42,14 @@
       ],
       "expo-font"
     ],
-    "scheme": "schoolai"
+    "scheme": "schoolai",
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "84d89e53-25b4-4532-8d73-aa0ebea95b80"
+      }
+    }
   }
 }
