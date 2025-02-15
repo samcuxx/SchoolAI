@@ -1,12 +1,13 @@
 import { Stack } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { Redirect } from "expo-router";
+import LoadingScreen from "../../components/LoadingScreen";
 
 export default function DashboardLayout() {
   const { session, loading } = useAuth();
 
   if (loading) {
-    return null;
+    return <LoadingScreen message="Preparing dashboard..." />;
   }
 
   if (!session) {

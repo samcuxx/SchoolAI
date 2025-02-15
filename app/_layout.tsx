@@ -27,18 +27,7 @@ export default function Layout() {
   return (
     <PaperProvider theme={theme}>
       <AuthProvider>
-        <Stack
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: theme.colors.primary,
-            },
-            headerTintColor: theme.colors.onPrimary,
-            headerTitleStyle: {
-              fontWeight: "bold",
-            },
-            animation: "slide_from_right",
-          }}
-        />
+        <Stack screenOptions={{ headerShown: false }} />
       </AuthProvider>
     </PaperProvider>
   );

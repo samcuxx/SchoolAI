@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import LoadingScreen from "../../../components/LoadingScreen";
 
 type Assignment = {
   id: string;
@@ -118,12 +119,7 @@ export default function Assignments() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <MaterialCommunityIcons name="book-clock" size={40} color="#1a237e" />
-        <Text style={styles.loadingText}>Loading assignments...</Text>
-      </View>
-    );
+    return <LoadingScreen message="Loading assignments..." />;
   }
 
   const groups = groupAssignmentsByStatus();
@@ -375,17 +371,6 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
-  loadingText: {
-    marginTop: 16,
-    color: "#1a237e",
-    fontSize: 16,
   },
   header: {
     backgroundColor: "transparent",

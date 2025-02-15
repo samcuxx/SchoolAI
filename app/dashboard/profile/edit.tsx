@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { useAuth } from "../../../contexts/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import LoadingScreen from "../../../components/LoadingScreen";
 
 type ProfileForm = {
   fullName: string;
@@ -111,12 +112,7 @@ export default function EditProfile() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <MaterialCommunityIcons name="account-cog" size={40} color="#1a237e" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </View>
-    );
+    return <LoadingScreen message="Loading profile..." />;
   }
 
   return (

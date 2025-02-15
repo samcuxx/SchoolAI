@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { router, Redirect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import LoadingScreen from "../../components/LoadingScreen";
 
 type UserProfile = {
   full_name: string;
@@ -68,11 +69,7 @@ export default function Dashboard() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
-      </View>
-    );
+    return <LoadingScreen message="Loading dashboard..." />;
   }
 
   return (
