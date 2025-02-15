@@ -1,29 +1,30 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import MarkdownIt from 'markdown-it';
 
 type AssignmentData = {
-  title: string;
-  subject: string;
-  studentName: string;
-  studentNumber: string;
-  schoolName: string;
-  dueDate: string;
   content: string;
-  provider?: string;
-  generatedDate?: string;
+  title: string;
+  format: {
+    font: string;
+    fontSize: number;
+    lineHeight: number;
+  };
 };
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
+const md = new MarkdownIt({
+  html: true,
+  breaks: true,
+  typographer: true
+});
 
-const htmlTemplate = (data: AssignmentData) => `
+const htmlTemplate = (data: AssignmentData) => {
+  // Convert markdown to HTML
+  const htmlContent = md.render(data.content);
+  const baseFontSize = data.format.fontSize;
+
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -31,106 +32,132 @@ const htmlTemplate = (data: AssignmentData) => `
   <title>${data.title}</title>
   <style>
     @page {
-      margin: 20px;
+      margin: 1in;
+      size: letter portrait;
+    }
+    * {
+      font-family: "${data.format.font}", serif;
+      line-height: ${data.format.lineHeight};
+      box-sizing: border-box;
     }
     body {
-      font-family: 'Helvetica', sans-serif;
-      line-height: 1.6;
-      padding: 20px;
+      font-size: ${baseFontSize}pt;
+      margin: 0;
+      padding: 0;
+      color: #000;
     }
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-      border-bottom: 2px solid #333;
-      padding-bottom: 20px;
-    }
-    .school-name {
-      font-size: 24px;
+    h1 {
+      font-size: ${baseFontSize * 1.6}pt;
       font-weight: bold;
-      margin-bottom: 10px;
+      margin: 1em 0 0.5em;
     }
-    .assignment-info {
-      margin-bottom: 30px;
-      border: 1px solid #ddd;
-      padding: 15px;
+    h2 {
+      font-size: ${baseFontSize * 1.4}pt;
+      font-weight: bold;
+      margin: 1em 0 0.5em;
+    }
+    h3 {
+      font-size: ${baseFontSize * 1.2}pt;
+      font-weight: bold;
+      margin: 1em 0 0.5em;
+    }
+    h4, h5, h6 {
+      font-size: ${baseFontSize}pt;
+      font-weight: bold;
+      margin: 1em 0 0.5em;
+    }
+    p {
+      font-size: ${baseFontSize}pt;
+      margin: 0.5em 0;
+    }
+    strong {
+      font-weight: bold;
+    }
+    code {
+      font-family: monospace;
+      font-size: ${baseFontSize * 0.9}pt;
+      background-color: #f5f5f5;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+    pre {
+      font-family: monospace;
+      font-size: ${baseFontSize * 0.9}pt;
+      background-color: #f5f5f5;
+      padding: 1em;
       border-radius: 5px;
-    }
-    .student-info {
-      margin-bottom: 30px;
-      padding: 15px;
-      background-color: #f8f8f8;
-      border-radius: 5px;
-      border: 1px solid #ddd;
-    }
-    .content {
-      margin-top: 20px;
+      overflow-x: auto;
       white-space: pre-wrap;
-      text-align: justify;
+      page-break-inside: avoid;
     }
-    .footer {
-      margin-top: 40px;
-      text-align: center;
-      font-size: 12px;
-      color: #666;
-      border-top: 1px solid #ddd;
-      padding-top: 20px;
+    ul, ol {
+      font-size: ${baseFontSize}pt;
+      margin: 0.5em 0;
+      padding-left: 2em;
     }
-    .ai-info {
-      margin-top: 20px;
+    li {
+      margin: 0.3em 0;
+    }
+    table {
+      font-size: ${baseFontSize}pt;
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.5em;
+      text-align: left;
+    }
+    th {
+      font-weight: bold;
+      background-color: #f5f5f5;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+    blockquote {
+      font-size: ${baseFontSize}pt;
       font-style: italic;
+      margin: 1em 0;
+      padding-left: 1em;
+      border-left: 4px solid #ddd;
       color: #666;
-      background-color: #f8f8f8;
-      padding: 10px;
-      border-radius: 5px;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #ddd;
+      margin: 1em 0;
+    }
+    @media print {
+      body {
+        width: 8.5in;
+        height: 11in;
+      }
+      pre, code {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="school-name">${data.schoolName}</div>
-    <h2>Assignment Submission</h2>
-  </div>
-
-  <div class="assignment-info">
-    <h3>${data.title}</h3>
-    <p><strong>Subject:</strong> ${data.subject}</p>
-    <p><strong>Due Date:</strong> ${formatDate(data.dueDate)}</p>
-  </div>
-
-  <div class="student-info">
-    <h3>Student Information</h3>
-    <p><strong>Name:</strong> ${data.studentName}</p>
-    <p><strong>Student ID:</strong> ${data.studentNumber}</p>
-  </div>
-
-  <div class="content">
-    ${data.content.replace(/\n/g, '<br>')}
-  </div>
-
-  ${data.provider ? `
-  <div class="ai-info">
-    Generated using ${data.provider} ${data.generatedDate ? `on ${formatDate(data.generatedDate)}` : ''}
-  </div>
-  ` : ''}
-
-  <div class="footer">
-    Submitted on: ${formatDate(new Date().toISOString())}
-  </div>
+  ${htmlContent}
 </body>
 </html>
 `;
+};
 
 export async function exportToPDF(data: AssignmentData) {
   try {
     console.log('Starting PDF export...');
 
-    // Ensure the cache directory exists
     const cacheDir = FileSystem.cacheDirectory;
     if (!cacheDir) {
       throw new Error('Cache directory not available');
     }
 
-    // Generate PDF
     console.log('Generating PDF...');
     const { uri } = await Print.printToFileAsync({
       html: htmlTemplate(data),
@@ -141,13 +168,11 @@ export async function exportToPDF(data: AssignmentData) {
 
     console.log('PDF generated at:', uri);
 
-    // Check if sharing is available
     const isSharingAvailable = await Sharing.isAvailableAsync();
     if (!isSharingAvailable) {
       throw new Error('Sharing is not available on this device');
     }
 
-    // Share the PDF
     console.log('Sharing PDF...');
     await Sharing.shareAsync(uri, {
       mimeType: 'application/pdf',
@@ -155,12 +180,8 @@ export async function exportToPDF(data: AssignmentData) {
       UTI: 'com.adobe.pdf'
     });
 
-    console.log('PDF shared successfully');
-
-    // Clean up the temporary file
     try {
       await FileSystem.deleteAsync(uri, { idempotent: true });
-      console.log('Temporary file cleaned up');
     } catch (cleanupError) {
       console.warn('Failed to clean up temporary file:', cleanupError);
     }

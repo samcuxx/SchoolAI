@@ -1,13 +1,12 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card, Button, Chip, Portal, Dialog } from 'react-native-paper';
-import { useAuth } from '../../../contexts/AuthContext';
-import { supabase } from '../../../services/auth/supabase';
-import { useEffect, useState } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useAIResponses } from '../../../hooks/useAIResponses';
-import { Clipboard } from 'react-native';
-import { shareContent } from '../../../services/sharing/shareContent';
-import { exportToPDF } from '../../../services/export/pdfExport';
+import { View, StyleSheet, ScrollView } from "react-native";
+import { Text, Card, Button, Chip, Portal, Dialog } from "react-native-paper";
+import { useAuth } from "../../../contexts/AuthContext";
+import { supabase } from "../../../services/auth/supabase";
+import { useEffect, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useAIResponses } from "../../../hooks/useAIResponses";
+import { Clipboard } from "react-native";
+import { MarkdownPreview } from "../../../components/MarkdownPreview";
 
 type Assignment = {
   id: string;
@@ -22,13 +21,20 @@ type Assignment = {
 
 export default function AssignmentDetail() {
   const { id } = useLocalSearchParams();
-  const { session } = useAuth();
+  const { session, profile, loading: profileLoading } = useAuth();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const { responses, loading: loadingResponses } = useAIResponses(id as string);
-  const { profile } = useAuth();
-  const [exporting, setExporting] = useState(false);
+  const {
+    responses,
+    loading: loadingResponses,
+    deleteResponse,
+  } = useAIResponses(id as string);
+  const [showDeleteResponseDialog, setShowDeleteResponseDialog] =
+    useState(false);
+  const [responseToDelete, setResponseToDelete] = useState<AIResponse | null>(
+    null
+  );
 
   useEffect(() => {
     fetchAssignment();
@@ -39,16 +45,16 @@ export default function AssignmentDetail() {
       if (!session?.user || !id) return;
 
       const { data, error } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('id', id)
+        .from("assignments")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       setAssignment(data);
     } catch (error) {
-      console.error('Error fetching assignment:', error);
-      alert('Error loading assignment');
+      console.error("Error fetching assignment:", error);
+      alert("Error loading assignment");
       router.back();
     } finally {
       setLoading(false);
@@ -60,16 +66,16 @@ export default function AssignmentDetail() {
       if (!session?.user || !id) return;
 
       const { error } = await supabase
-        .from('assignments')
+        .from("assignments")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
 
-      router.replace('/(dashboard)/assignments');
+      router.replace("/(dashboard)/assignments");
     } catch (error) {
-      console.error('Error deleting assignment:', error);
-      alert('Error deleting assignment');
+      console.error("Error deleting assignment:", error);
+      alert("Error deleting assignment");
     }
   }
 
@@ -78,85 +84,31 @@ export default function AssignmentDetail() {
       if (!session?.user || !id) return;
 
       const { error } = await supabase
-        .from('assignments')
+        .from("assignments")
         .update({ status: newStatus })
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
 
-      setAssignment(prev => prev ? { ...prev, status: newStatus } : null);
+      setAssignment((prev) => (prev ? { ...prev, status: newStatus } : null));
     } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Error updating status');
+      console.error("Error updating status:", error);
+      alert("Error updating status");
     }
   }
 
-  async function handleShareAssignment() {
+  async function handleDeleteResponse(response: AIResponse) {
     try {
-      if (!assignment) return;
-
-      await shareContent(
-        `${assignment.instructions}\n\nDue Date: ${new Date(assignment.due_date).toLocaleDateString()}`,
-        {
-          title: assignment.title,
-          message: `Assignment for ${assignment.subject}`,
-          filename: `assignment_${assignment.id}.txt`,
-        }
-      );
+      await deleteResponse(response.id);
+      setShowDeleteResponseDialog(false);
+      setResponseToDelete(null);
     } catch (error) {
-      console.error('Error sharing assignment:', error);
-      alert('Error sharing assignment');
+      console.error("Error deleting response:", error);
+      alert("Error deleting response");
     }
   }
 
-  async function handleShareResponse(response: AIResponse) {
-    try {
-      await shareContent(
-        response.response,
-        {
-          title: `AI Response - ${assignment?.title}`,
-          message: `Generated by ${response.provider === 'openai' ? 'ChatGPT' : 'Gemini AI'} on ${new Date(response.created_at).toLocaleString()}`,
-          filename: `ai_response_${response.id}.txt`,
-        }
-      );
-    } catch (error) {
-      console.error('Error sharing response:', error);
-      alert('Error sharing response');
-    }
-  }
-
-  async function handleExportPDF(response?: AIResponse) {
-    try {
-      if (!assignment || !profile) {
-        alert('Missing assignment or profile information');
-        return;
-      }
-
-      // Show loading state
-      setExporting(true);
-
-      await exportToPDF({
-        title: assignment.title,
-        subject: assignment.subject,
-        studentName: profile.full_name || 'Unknown Student',
-        studentNumber: profile.student_number || 'N/A',
-        schoolName: profile.school_name || 'School Not Set',
-        dueDate: assignment.due_date,
-        content: response ? response.response : assignment.instructions,
-        provider: response?.provider ? 
-          (response.provider === 'openai' ? 'ChatGPT' : 'Gemini AI') : 
-          undefined,
-        generatedDate: response?.created_at
-      });
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert(error instanceof Error ? error.message : 'Error exporting PDF');
-    } finally {
-      setExporting(false);
-    }
-  }
-
-  if (loading || !assignment) {
+  if (loading || !assignment || profileLoading) {
     return (
       <View style={styles.container}>
         <Text>Loading...</Text>
@@ -173,19 +125,23 @@ export default function AssignmentDetail() {
             <Text variant="titleMedium" style={styles.subject}>
               Subject: {assignment.subject}
             </Text>
-            
+
             <View style={styles.statusContainer}>
               <Text variant="bodyLarge">Status: </Text>
               <Chip
                 mode="flat"
                 onPress={() => {
-                  const newStatus = assignment.status === 'draft' ? 'in_progress' : 
-                    assignment.status === 'in_progress' ? 'completed' : 'draft';
+                  const newStatus =
+                    assignment.status === "draft"
+                      ? "in_progress"
+                      : assignment.status === "in_progress"
+                      ? "completed"
+                      : "draft";
                   handleStatusChange(newStatus);
                 }}
                 style={styles.statusChip}
               >
-                {assignment.status.replace('_', ' ').toUpperCase()}
+                {assignment.status.replace("_", " ").toUpperCase()}
               </Chip>
             </View>
 
@@ -200,7 +156,7 @@ export default function AssignmentDetail() {
               Instructions
             </Text>
             <Text variant="bodyMedium" style={styles.sectionContent}>
-              {assignment.instructions || 'No instructions provided'}
+              {assignment.instructions || "No instructions provided"}
             </Text>
 
             {assignment.content && (
@@ -231,7 +187,7 @@ export default function AssignmentDetail() {
             onPress={() => router.push(`/assignments/${id}/generate`)}
             style={styles.button}
           >
-            Generate Content
+            Generate Solution
           </Button>
           <Button
             mode="outlined"
@@ -241,22 +197,6 @@ export default function AssignmentDetail() {
             textColor="red"
           >
             Delete Assignment
-          </Button>
-          <Button
-            mode="contained"
-            icon="share"
-            onPress={handleShareAssignment}
-            style={styles.button}
-          >
-            Share Assignment
-          </Button>
-          <Button
-            mode="contained"
-            icon="file-pdf-box"
-            onPress={() => handleExportPDF()}
-            style={styles.button}
-          >
-            Export as PDF
           </Button>
         </View>
 
@@ -272,34 +212,31 @@ export default function AssignmentDetail() {
                     <Chip
                       mode="outlined"
                       style={styles.providerChip}
-                      textStyle={{ color: response.provider === 'openai' ? '#10a37f' : '#1a73e8' }}
+                      textStyle={{
+                        color:
+                          response.provider === "openai"
+                            ? "#10a37f"
+                            : "#1a73e8",
+                      }}
                     >
-                      {response.provider === 'openai' ? 'ChatGPT' : 'Gemini AI'}
+                      {response.provider === "openai" ? "ChatGPT" : "Gemini AI"}
                     </Chip>
                     <Text variant="bodySmall" style={styles.timestamp}>
                       {new Date(response.created_at).toLocaleString()}
                     </Text>
                   </View>
 
-                  <Text variant="bodyMedium" style={styles.responseText}>
-                    {response.response}
-                  </Text>
+                  <View style={styles.markdownContainer}>
+                    <MarkdownPreview content={response.response} />
+                  </View>
 
                   <View style={styles.responseActions}>
-                    <Button
-                      mode="text"
-                      icon="refresh"
-                      onPress={() => router.push(`/assignments/${id}/generate`)}
-                      style={styles.actionButton}
-                    >
-                      Generate New
-                    </Button>
                     <Button
                       mode="text"
                       icon="content-copy"
                       onPress={() => {
                         Clipboard.setString(response.response);
-                        alert('Copied to clipboard!');
+                        alert("Copied to clipboard!");
                       }}
                       style={styles.actionButton}
                     >
@@ -307,21 +244,15 @@ export default function AssignmentDetail() {
                     </Button>
                     <Button
                       mode="text"
-                      icon="share"
-                      onPress={() => handleShareResponse(response)}
+                      icon="delete"
+                      onPress={() => {
+                        setResponseToDelete(response);
+                        setShowDeleteResponseDialog(true);
+                      }}
                       style={styles.actionButton}
+                      textColor="red"
                     >
-                      Share
-                    </Button>
-                    <Button
-                      mode="text"
-                      icon="file-pdf-box"
-                      onPress={() => handleExportPDF(response)}
-                      loading={exporting}
-                      disabled={exporting}
-                      style={styles.actionButton}
-                    >
-                      {exporting ? 'Exporting...' : 'Export PDF'}
+                      Delete
                     </Button>
                   </View>
                 </Card.Content>
@@ -339,12 +270,49 @@ export default function AssignmentDetail() {
           <Dialog.Title>Delete Assignment</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Are you sure you want to delete this assignment? This action cannot be undone.
+              Are you sure you want to delete this assignment? This action
+              cannot be undone.
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setShowDeleteDialog(false)}>Cancel</Button>
-            <Button onPress={handleDelete} textColor="red">Delete</Button>
+            <Button onPress={handleDelete} textColor="red">
+              Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog
+          visible={showDeleteResponseDialog}
+          onDismiss={() => {
+            setShowDeleteResponseDialog(false);
+            setResponseToDelete(null);
+          }}
+        >
+          <Dialog.Title>Delete Response</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              Are you sure you want to delete this AI-generated response? This
+              action cannot be undone.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => {
+                setShowDeleteResponseDialog(false);
+                setResponseToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onPress={() =>
+                responseToDelete && handleDeleteResponse(responseToDelete)
+              }
+              textColor="red"
+            >
+              Delete
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -355,7 +323,7 @@ export default function AssignmentDetail() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   card: {
     margin: 16,
@@ -365,8 +333,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
   statusChip: {
@@ -374,7 +342,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginTop: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   sectionContent: {
     marginTop: 8,
@@ -387,32 +355,35 @@ const styles = StyleSheet.create({
   },
   responseCard: {
     marginTop: 12,
+    overflow: "hidden",
   },
   responseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   providerChip: {
     height: 28,
   },
   responseActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: "#eee",
     paddingTop: 12,
   },
   actionButton: {
     marginLeft: 8,
   },
-  responseText: {
-    whiteSpace: 'pre-wrap',
-  },
   timestamp: {
-    marginTop: 8,
     opacity: 0.7,
   },
-}); 
+  markdownContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 12,
+  },
+});

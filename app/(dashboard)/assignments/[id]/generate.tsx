@@ -1,10 +1,11 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card, Button, TextInput, SegmentedButtons, Portal, Dialog, Switch } from 'react-native-paper';
-import { useAuth } from '../../../../contexts/AuthContext';
-import { supabase } from '../../../../services/auth/supabase';
-import { useEffect, useState } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useAIResponses } from '../../../../hooks/useAIResponses';
+import { View, StyleSheet, ScrollView } from "react-native";
+import { Text, Card, Button, TextInput } from "react-native-paper";
+import { useAuth } from "../../../../contexts/AuthContext";
+import { supabase } from "../../../../services/auth/supabase";
+import { useEffect, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useAIResponses } from "../../../../hooks/useAIResponses";
+import { MarkdownPreview } from "../../../../components/MarkdownPreview";
 
 type Assignment = {
   id: string;
@@ -13,20 +14,14 @@ type Assignment = {
   instructions: string;
 };
 
-type GenerationType = 'answer' | 'outline' | 'research';
-
 export default function GenerateContent() {
   const { id } = useLocalSearchParams();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [generationType, setGenerationType] = useState<GenerationType>('answer');
-  const [additionalPrompt, setAdditionalPrompt] = useState('');
-  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const [generatedPrompt, setGeneratedPrompt] = useState('');
-  const { generateResponse, generateWithGemini, generateWithOpenAI } = useAIResponses(id as string);
-  const [forceGemini, setForceGemini] = useState(false);
+  const [additionalPrompt, setAdditionalPrompt] = useState("");
+  const { generateResponse } = useAIResponses(id as string);
 
   useEffect(() => {
     fetchAssignment();
@@ -37,16 +32,16 @@ export default function GenerateContent() {
       if (!session?.user || !id) return;
 
       const { data, error } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('id', id)
+        .from("assignments")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       setAssignment(data);
     } catch (error) {
-      console.error('Error fetching assignment:', error);
-      alert('Error loading assignment');
+      console.error("Error fetching assignment:", error);
+      alert("Error loading assignment");
       router.back();
     } finally {
       setLoading(false);
@@ -54,54 +49,45 @@ export default function GenerateContent() {
   }
 
   const generatePrompt = () => {
-    if (!assignment) return '';
+    if (!assignment || !profile) return "";
 
-    let basePrompt = '';
-    switch (generationType) {
-      case 'answer':
-        basePrompt = `Please provide detailed answers to the following assignment questions:\n\n${assignment.instructions}\n\nRequirements:\n- Provide comprehensive answers\n- Include relevant examples\n- Cite sources where applicable`;
-        break;
-      case 'outline':
-        basePrompt = `Please create a detailed outline for answering the following assignment:\n\n${assignment.instructions}\n\nRequirements:\n- Create a structured outline\n- Include main points and sub-points\n- Suggest relevant sources or references`;
-        break;
-      case 'research':
-        basePrompt = `Please provide research materials and sources for the following assignment:\n\n${assignment.instructions}\n\nRequirements:\n- List relevant academic sources\n- Include key concepts to research\n- Suggest research methodologies`;
-        break;
-    }
+    return `Create a formal academic assignment solution with the following structure:
 
-    if (additionalPrompt) {
-      basePrompt += `\n\nAdditional requirements:\n${additionalPrompt}`;
-    }
+${assignment.instructions}
 
-    return basePrompt;
+Please write and solve this assignment in a formal academic manner, ensuring:
+1. Clear and professional formatting
+2. Detailed explanations and solutions
+3. Step-by-step problem-solving where applicable
+4. Proper academic language and terminology
+5. Relevant examples or illustrations if needed
+6. Citations and references if required
+7. Use the following format:{
+text size: 12pt
+line height: 1.5
+font: Times New Roman
+}
+
+Format the response in markdown, maintaining the header structure as shown above.
+Include a conclusion or summary at the end if appropriate.
+
+Additional Requirements:
+${
+  additionalPrompt
+    ? additionalPrompt
+    : "Standard academic formatting and professional presentation."
+}`;
   };
 
   const handleGenerate = async () => {
     try {
+      setGenerating(true);
       const prompt = generatePrompt();
-      setGeneratedPrompt(prompt);
-      setShowPreviewDialog(true);
-    } catch (error) {
-      console.error('Error generating prompt:', error);
-      alert('Error generating prompt');
-    }
-  };
-
-  const handleConfirmGenerate = async () => {
-    setShowPreviewDialog(false);
-    setGenerating(true);
-    try {
-      if (forceGemini) {
-        // Use Gemini directly
-        await generateWithGemini(generatedPrompt);
-      } else {
-        // Try OpenAI with Gemini fallback
-        await generateResponse(generatedPrompt);
-      }
+      await generateResponse(prompt);
       router.push(`/assignments/${id}`);
-    } catch (error: any) {
-      console.error('Error generating content:', error);
-      alert(error.message || 'Error generating content');
+    } catch (error) {
+      console.error("Error generating content:", error);
+      alert("Error generating content");
     } finally {
       setGenerating(false);
     }
@@ -120,42 +106,15 @@ export default function GenerateContent() {
       <Card style={styles.card}>
         <Card.Content>
           <Text variant="titleLarge" style={styles.title}>
-            Generate Content
+            Solve Assignment
           </Text>
 
           <Text variant="titleMedium" style={styles.sectionTitle}>
-            Assignment
+            Assignment Details
           </Text>
           <Text variant="bodyMedium" style={styles.assignmentText}>
             {assignment.instructions}
           </Text>
-
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Generation Type
-          </Text>
-          <SegmentedButtons
-            value={generationType}
-            onValueChange={(value) => setGenerationType(value as GenerationType)}
-            buttons={[
-              { value: 'answer', label: 'Answer' },
-              { value: 'outline', label: 'Outline' },
-              { value: 'research', label: 'Research' },
-            ]}
-            style={styles.segmentedButtons}
-          />
-
-          <View style={styles.providerSection}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              AI Provider
-            </Text>
-            <View style={styles.providerSwitch}>
-              <Text>Use Gemini AI</Text>
-              <Switch
-                value={forceGemini}
-                onValueChange={setForceGemini}
-              />
-            </View>
-          </View>
 
           <Text variant="titleMedium" style={styles.sectionTitle}>
             Additional Requirements (Optional)
@@ -175,28 +134,10 @@ export default function GenerateContent() {
             loading={generating}
             style={styles.generateButton}
           >
-            Generate Content
+            {generating ? "Generating Solution..." : "Generate Solution"}
           </Button>
         </Card.Content>
       </Card>
-
-      <Portal>
-        <Dialog
-          visible={showPreviewDialog}
-          onDismiss={() => setShowPreviewDialog(false)}
-        >
-          <Dialog.Title>Review Prompt</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.promptPreview}>
-              {generatedPrompt}
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowPreviewDialog(false)}>Cancel</Button>
-            <Button onPress={handleConfirmGenerate}>Generate</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
     </ScrollView>
   );
 }
@@ -204,47 +145,28 @@ export default function GenerateContent() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   card: {
     margin: 16,
   },
   title: {
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   sectionTitle: {
     marginTop: 16,
     marginBottom: 8,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   assignmentText: {
     marginBottom: 16,
   },
-  segmentedButtons: {
-    marginBottom: 16,
-  },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     marginBottom: 16,
   },
   generateButton: {
     marginTop: 8,
   },
-  promptPreview: {
-    backgroundColor: '#f5f5f5',
-    padding: 8,
-    borderRadius: 4,
-  },
-  providerSection: {
-    marginTop: 16,
-  },
-  providerSwitch: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 4,
-  },
-}); 
+});

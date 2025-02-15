@@ -10,6 +10,8 @@ type ProfileForm = {
   schoolName: string;
   studentNumber: string;
   contactNumber: string;
+  program: string;
+  department: string;
 };
 
 export default function EditProfile() {
@@ -21,6 +23,8 @@ export default function EditProfile() {
     schoolName: '',
     studentNumber: '',
     contactNumber: '',
+    program: '',
+    department: '',
   });
 
   useEffect(() => {
@@ -44,6 +48,8 @@ export default function EditProfile() {
         schoolName: data.school_name || '',
         studentNumber: data.student_number || '',
         contactNumber: data.contact_number || '',
+        program: data.program || '',
+        department: data.department || '',
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -67,6 +73,8 @@ export default function EditProfile() {
           school_name: formData.schoolName,
           student_number: formData.studentNumber,
           contact_number: formData.contactNumber,
+          program: formData.program,
+          department: formData.department,
           updated_at: new Date().toISOString(),
         })
         .eq('id', session.user.id);
@@ -113,7 +121,7 @@ export default function EditProfile() {
         onChangeText={(text) => setFormData({ ...formData, fullName: text })}
         style={styles.input}
       />
-      <HelperText type="info">Your full name</HelperText>
+      <HelperText type="info">Enter your full name as it appears on official documents</HelperText>
 
       <TextInput
         label="School Name"
@@ -121,7 +129,6 @@ export default function EditProfile() {
         onChangeText={(text) => setFormData({ ...formData, schoolName: text })}
         style={styles.input}
       />
-      <HelperText type="info">Your school or institution name</HelperText>
 
       <TextInput
         label="Student Number"
@@ -129,7 +136,22 @@ export default function EditProfile() {
         onChangeText={(text) => setFormData({ ...formData, studentNumber: text })}
         style={styles.input}
       />
-      <HelperText type="info">Your student ID or number</HelperText>
+
+      <TextInput
+        label="Program (Optional)"
+        value={formData.program}
+        onChangeText={(text) => setFormData({ ...formData, program: text })}
+        style={styles.input}
+        placeholder="e.g., Bachelor of Science"
+      />
+
+      <TextInput
+        label="Department (Optional)"
+        value={formData.department}
+        onChangeText={(text) => setFormData({ ...formData, department: text })}
+        style={styles.input}
+        placeholder="e.g., Computer Science"
+      />
 
       <TextInput
         label="Contact Number"
@@ -138,7 +160,6 @@ export default function EditProfile() {
         style={styles.input}
         keyboardType="phone-pad"
       />
-      <HelperText type="info">Your contact number (optional)</HelperText>
 
       <View style={styles.buttonContainer}>
         <Button
