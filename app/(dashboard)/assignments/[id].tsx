@@ -28,6 +28,7 @@ export default function AssignmentDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { responses, loading: loadingResponses } = useAIResponses(id as string);
   const { profile } = useAuth();
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchAssignment();
@@ -126,14 +127,20 @@ export default function AssignmentDetail() {
 
   async function handleExportPDF(response?: AIResponse) {
     try {
-      if (!assignment || !profile) return;
+      if (!assignment || !profile) {
+        alert('Missing assignment or profile information');
+        return;
+      }
+
+      // Show loading state
+      setExporting(true);
 
       await exportToPDF({
         title: assignment.title,
         subject: assignment.subject,
-        studentName: profile.full_name,
-        studentNumber: profile.student_number,
-        schoolName: profile.school_name,
+        studentName: profile.full_name || 'Unknown Student',
+        studentNumber: profile.student_number || 'N/A',
+        schoolName: profile.school_name || 'School Not Set',
         dueDate: assignment.due_date,
         content: response ? response.response : assignment.instructions,
         provider: response?.provider ? 
@@ -143,7 +150,9 @@ export default function AssignmentDetail() {
       });
     } catch (error) {
       console.error('Error exporting PDF:', error);
-      alert('Error exporting PDF');
+      alert(error instanceof Error ? error.message : 'Error exporting PDF');
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -308,9 +317,11 @@ export default function AssignmentDetail() {
                       mode="text"
                       icon="file-pdf-box"
                       onPress={() => handleExportPDF(response)}
+                      loading={exporting}
+                      disabled={exporting}
                       style={styles.actionButton}
                     >
-                      Export PDF
+                      {exporting ? 'Exporting...' : 'Export PDF'}
                     </Button>
                   </View>
                 </Card.Content>

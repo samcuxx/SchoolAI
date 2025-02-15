@@ -10,6 +10,15 @@ type AssignmentData = {
   content: string;
 };
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
 export function formatAssignment(data: AssignmentData): string {
   return `
 ${data.schoolName.toUpperCase()}
@@ -20,7 +29,7 @@ ASSIGNMENT SUBMISSION
 
 Title: ${data.title}
 Subject: ${data.subject}
-Due Date: ${format(new Date(data.dueDate), 'PPP')}
+Due Date: ${formatDate(data.dueDate)}
 
 Student Information:
 ------------------
@@ -31,6 +40,6 @@ Content:
 --------
 ${data.content}
 
-Submitted on: ${format(new Date(), 'PPP')}
+Submitted on: ${formatDate(new Date().toISOString())}
 `;
 } 
