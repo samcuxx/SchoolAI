@@ -1,52 +1,45 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { PaperProvider } from 'react-native-paper';
-import { theme } from '../constants/theme';
-import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import { useEffect } from 'react';
+import { Stack } from "expo-router";
+import { PaperProvider, MD3LightTheme } from "react-native-paper";
+import { AuthProvider } from "../contexts/AuthContext";
 
-function useProtectedRoute() {
-  const { session, loading } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
+const theme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: "#1a237e",
+    secondary: "#4c669f",
+    tertiary: "#192f6a",
+    background: "#f5f5f5",
+    surface: "rgba(255, 255, 255, 0.95)",
+    surfaceVariant: "#f8f9fa",
+    error: "#B00020",
+    onPrimary: "#ffffff",
+    onSecondary: "#ffffff",
+    onBackground: "#000000",
+    onSurface: "#000000",
+    onSurfaceVariant: "#666666",
+    outline: "#1a237e",
+  },
+  roundness: 10,
+};
 
-  useEffect(() => {
-    if (loading) return;
-
-    const inAuthGroup = segments[0] === '(auth)';
-    
-    if (!session && !inAuthGroup) {
-      // Redirect to login if not authenticated
-      router.replace('/(auth)/login');
-    } else if (session && inAuthGroup) {
-      // Redirect to dashboard if authenticated
-      router.replace('/(dashboard)');
-    }
-  }, [session, loading, segments]);
-}
-
-function RootLayoutNav() {
-  useProtectedRoute();
-
+export default function Layout() {
   return (
-    <Stack>
-      <Stack.Screen 
-        name="(auth)" 
-        options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="(dashboard)" 
-        options={{ headerShown: false }} 
-      />
-    </Stack>
+    <PaperProvider theme={theme}>
+      <AuthProvider>
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: theme.colors.primary,
+            },
+            headerTintColor: theme.colors.onPrimary,
+            headerTitleStyle: {
+              fontWeight: "bold",
+            },
+            animation: "slide_from_right",
+          }}
+        />
+      </AuthProvider>
+    </PaperProvider>
   );
 }
-
-export default function RootLayout() {
-  return (
-    <AuthProvider>
-      <PaperProvider theme={theme}>
-        <RootLayoutNav />
-      </PaperProvider>
-    </AuthProvider>
-  );
-} 

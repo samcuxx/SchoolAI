@@ -205,11 +205,11 @@ schoolai/
 ├── app/                      # Main application directory
 │   ├── _layout.tsx          # Root layout component
 │   ├── index.tsx            # Entry point
-│   ├── (auth)/              # Authentication routes
+│   ├── auth/              # Authentication routes
 │   │   ├── login.tsx
 │   │   ├── register.tsx
 │   │   └── forgot-password.tsx
-│   ├── (dashboard)/         # Protected dashboard routes
+│   ├── dashboard/         # Protected dashboard routes
 │   │   ├── assignments/     # Assignment-related screens
 │   │   ├── profile/         # Profile management
 │   │   └── settings/        # App settings
