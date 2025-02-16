@@ -48,7 +48,11 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${
+            process.env.NODE_ENV === "production"
+              ? process.env.NEXT_PUBLIC_SITE_URL
+              : window.location.origin
+          }/auth/callback`,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -147,14 +151,14 @@ export default function LoginPage() {
                 </label>
               </div>
 
-              <div className="text-sm">
+              {/* <div className="text-sm">
                 <Link
                   href="/forgot-password"
                   className="font-medium text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
                 >
                   Forgot password?
                 </Link>
-              </div>
+              </div> */}
             </div>
 
             <div>

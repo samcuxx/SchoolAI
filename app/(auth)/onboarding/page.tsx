@@ -46,8 +46,30 @@ export default function OnboardingPage() {
     }));
   };
 
+  const isCurrentStepValid = () => {
+    const currentFields = steps[currentStep].fields;
+    return currentFields.every((field) => {
+      const value = schoolDetails[field.name as keyof typeof schoolDetails];
+      return value && value.trim() !== "";
+    });
+  };
+
+  const handleNextStep = () => {
+    if (isCurrentStepValid()) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      setError("Please fill out all fields in this section");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (!isCurrentStepValid()) {
+      setError("Please fill out all fields in this section");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -219,16 +241,21 @@ export default function OnboardingPage() {
             {currentStep < steps.length - 1 ? (
               <button
                 type="button"
-                onClick={() => setCurrentStep(currentStep + 1)}
-                className="btn-primary ml-auto"
+                onClick={handleNextStep}
+                className={`btn-primary ml-auto ${
+                  !isCurrentStepValid() ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={!isCurrentStepValid()}
               >
                 Next
               </button>
             ) : (
               <button
                 type="submit"
-                disabled={isLoading}
-                className="btn-primary ml-auto"
+                disabled={isLoading || !isCurrentStepValid()}
+                className={`btn-primary ml-auto ${
+                  !isCurrentStepValid() ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 {isLoading ? (
                   <>

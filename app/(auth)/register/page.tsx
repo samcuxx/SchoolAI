@@ -36,7 +36,10 @@ export default function RegisterPage() {
     }
 
     try {
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+      const {
+        data: { user },
+        error: signUpError,
+      } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -62,7 +65,11 @@ export default function RegisterPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${
+            process.env.NODE_ENV === "production"
+              ? process.env.NEXT_PUBLIC_SITE_URL
+              : window.location.origin
+          }/auth/callback`,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
