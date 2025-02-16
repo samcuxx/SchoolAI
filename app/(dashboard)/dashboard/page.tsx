@@ -1,48 +1,68 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import type { Assignment } from "@/types";
+import Link from "next/link";
+import { motion } from "framer-motion";
+
+interface Assignment {
+  id: string;
+  title: string;
+  status: "draft" | "completed";
+  created_at: string;
+}
 
 export default function DashboardPage() {
   const supabase = createClientComponentClient();
-  const [recentAssignments, setRecentAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recentAssignments, setRecentAssignments] = useState<Assignment[]>([]);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    async function fetchRecentAssignments() {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
-          .from("assignments")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(5);
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
 
-        if (error) throw error;
+        const [assignmentsResponse, profileResponse] = await Promise.all([
+          supabase
+            .from('assignments')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(5),
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user?.id)
+            .single()
+        ]);
 
-        setRecentAssignments(data || []);
-      } catch (error) {
-        setError(error instanceof Error ? error.message : "An error occurred");
+        if (assignmentsResponse.error) throw assignmentsResponse.error;
+        if (profileResponse.error) throw profileResponse.error;
+
+        setRecentAssignments(assignmentsResponse.data);
+        setProfile(profileResponse.data);
+      } catch (error: any) {
+        setError(error.message);
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    fetchRecentAssignments();
+    fetchData();
   }, [supabase]);
 
   const stats = [
     {
       name: "Total Assignments",
       stat: recentAssignments.length,
-      icon: (
+      icon: (props: any) => (
         <svg
-          className="h-6 w-6 text-gray-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          {...props}
         >
           <path
             strokeLinecap="round"
@@ -56,12 +76,12 @@ export default function DashboardPage() {
     {
       name: "Completed",
       stat: recentAssignments.filter((a) => a.status === "completed").length,
-      icon: (
+      icon: (props: any) => (
         <svg
-          className="h-6 w-6 text-gray-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          {...props}
         >
           <path
             strokeLinecap="round"
@@ -75,12 +95,12 @@ export default function DashboardPage() {
     {
       name: "In Progress",
       stat: recentAssignments.filter((a) => a.status === "draft").length,
-      icon: (
+      icon: (props: any) => (
         <svg
-          className="h-6 w-6 text-gray-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          {...props}
         >
           <path
             strokeLinecap="round"
@@ -93,109 +113,107 @@ export default function DashboardPage() {
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl sm:truncate">
-            Dashboard
-          </h2>
-        </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
-          <Link
-            href="/assignments/new"
-            className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+    <div className="space-y-8">
+      {/* Welcome Section */}
+      <div className="card p-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Welcome back, {profile?.full_name}!
+        </h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Here's what's happening with your assignments
+        </p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {stats.map((item) => (
+          <motion.div
+            key={item.name}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card p-6"
           >
-            New Assignment
-          </Link>
-        </div>
-      </div>
-
-      <div>
-        <dl className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
-          {stats.map((item) => (
-            <div
-              key={item.name}
-              className="relative bg-white dark:bg-gray-800 pt-5 px-4 pb-12 sm:pt-6 sm:px-6 rounded-lg overflow-hidden"
-            >
-              <dt>
-                <div className="absolute bg-indigo-500 rounded-md p-3">
-                  {item.icon}
-                </div>
-                <p className="ml-16 text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                  {item.name}
-                </p>
-              </dt>
-              <dd className="ml-16 pb-6 flex items-baseline sm:pb-7">
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {item.stat}
-                </p>
-              </dd>
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <item.icon className="h-6 w-6 text-primary-500" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                    {item.name}
+                  </dt>
+                  <dd className="flex items-baseline">
+                    <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+                      {item.stat}
+                    </div>
+                  </dd>
+                </dl>
+              </div>
             </div>
-          ))}
-        </dl>
+          </motion.div>
+        ))}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
-        <div className="px-4 py-5 sm:px-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-            Recent Assignments
-          </h3>
-        </div>
-        {loading ? (
-          <div className="px-4 py-5 sm:p-6">Loading...</div>
-        ) : error ? (
-          <div className="px-4 py-5 sm:p-6 text-red-600 dark:text-red-400">
-            {error}
-          </div>
-        ) : recentAssignments.length === 0 ? (
-          <div className="px-4 py-5 sm:p-6 text-gray-500 dark:text-gray-400">
-            No assignments yet.{" "}
+      {/* Recent Assignments */}
+      <div className="card overflow-hidden">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+              Recent Assignments
+            </h2>
             <Link
-              href="/assignments/new"
-              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500"
+              href="/assignments"
+              className="text-sm font-medium text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300"
             >
-              Create your first assignment
+              View all
             </Link>
           </div>
-        ) : (
-          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {recentAssignments.map((assignment) => (
-              <li key={assignment.id}>
-                <Link
-                  href={`/assignments/${assignment.id}`}
-                  className="block hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <div className="px-4 py-4 sm:px-6">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
-                        {assignment.title}
+        </div>
+        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+          {recentAssignments.map((assignment) => (
+            <li key={assignment.id}>
+              <Link
+                href={`/assignments/${assignment.id}`}
+                className="block hover:bg-gray-50 dark:hover:bg-gray-800 transition duration-150"
+              >
+                <div className="px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {assignment.title}
+                    </p>
+                    <div className="ml-2 flex-shrink-0 flex">
+                      <p
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          assignment.status === "completed"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        }`}
+                      >
+                        {assignment.status === "completed" ? "Completed" : "In Progress"}
                       </p>
-                      <div className="ml-2 flex-shrink-0 flex">
-                        <p
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            assignment.status === "completed"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                          }`}
-                        >
-                          {assignment.status}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-2 sm:flex sm:justify-between">
-                      <div className="sm:flex">
-                        <p className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                          {new Date(assignment.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
                     </div>
                   </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+                  <div className="mt-2 flex">
+                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                      <time dateTime={assignment.created_at}>
+                        {new Date(assignment.created_at).toLocaleDateString()}
+                      </time>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

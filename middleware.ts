@@ -10,28 +10,26 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Auth routes - redirect to dashboard if already authenticated
-  if (
-    req.nextUrl.pathname.startsWith("/login") ||
-    req.nextUrl.pathname.startsWith("/register")
-  ) {
-    if (session) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-    return res;
+  // If user is not logged in and trying to access protected routes
+  if (!session && req.nextUrl.pathname !== '/login' && req.nextUrl.pathname !== '/register') {
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // Protected routes - redirect to login if not authenticated
-  if (
-    req.nextUrl.pathname.startsWith("/dashboard") ||
-    req.nextUrl.pathname.startsWith("/assignments") ||
-    req.nextUrl.pathname.startsWith("/profile") ||
-    req.nextUrl.pathname.startsWith("/onboarding")
-  ) {
-    if (!session) {
-      const redirectUrl = new URL("/login", req.url);
-      redirectUrl.searchParams.set("redirectedFrom", req.nextUrl.pathname);
-      return NextResponse.redirect(redirectUrl);
+  // If user is logged in and trying to access auth routes
+  if (session && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
+  // If user is logged in and hasn't completed onboarding
+  if (session && req.nextUrl.pathname !== '/onboarding') {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile?.onboarding_completed) {
+      return NextResponse.redirect(new URL('/onboarding', req.url));
     }
   }
 

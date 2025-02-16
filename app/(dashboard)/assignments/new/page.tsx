@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { generateWithOpenAI, generateWithGemini } from "@/lib/ai/config";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { motion } from "framer-motion";
 
 export default function NewAssignmentPage() {
   const router = useRouter();
@@ -91,36 +92,32 @@ export default function NewAssignmentPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl sm:truncate">
-            New Assignment
-          </h2>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-4xl mx-auto"
+    >
+      <div className="card p-6 mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          New Assignment
+        </h2>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Create a new assignment and get AI-powered assistance
+        </p>
       </div>
 
-      <div className="mt-6">
+      <div className="card p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
-                    Error
-                  </h3>
-                  <div className="mt-2 text-sm text-red-700 dark:text-red-300">
-                    <p>{error}</p>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-red-50 dark:bg-red-900/50 p-4 rounded-xl">
+              <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
             </div>
           )}
 
           <div>
             <label
               htmlFor="title"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
               Title
             </label>
@@ -132,7 +129,8 @@ export default function NewAssignmentPage() {
                 required
                 value={formData.title}
                 onChange={handleChange}
-                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                className="input-primary"
+                placeholder="Enter assignment title"
               />
             </div>
           </div>
@@ -140,7 +138,7 @@ export default function NewAssignmentPage() {
           <div>
             <label
               htmlFor="content"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
               Question or Prompt
             </label>
@@ -152,16 +150,17 @@ export default function NewAssignmentPage() {
                 required
                 value={formData.content}
                 onChange={handleChange}
-                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                className="input-primary"
+                placeholder="Enter your question or assignment prompt"
               />
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="w-full sm:w-48">
               <label
                 htmlFor="ai-model"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
                 AI Model
               </label>
@@ -171,7 +170,7 @@ export default function NewAssignmentPage() {
                 onChange={(e) =>
                   setAiModel(e.target.value as "openai" | "gemini")
                 }
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-white"
+                className="input-primary mt-1"
               >
                 <option value="gemini">Gemini</option>
                 <option value="openai" disabled>
@@ -184,7 +183,7 @@ export default function NewAssignmentPage() {
               type="button"
               onClick={handleGenerate}
               disabled={loading || !formData.content}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 mt-6"
+              className="btn-primary sm:mt-7"
             >
               {loading ? (
                 <>
@@ -198,10 +197,13 @@ export default function NewAssignmentPage() {
           </div>
 
           {aiResponse && (
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
               <label
                 htmlFor="ai-response"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
                 AI Response
               </label>
@@ -212,17 +214,17 @@ export default function NewAssignmentPage() {
                   rows={8}
                   readOnly
                   value={aiResponse}
-                  className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                  className="input-primary font-mono text-sm"
                 />
               </div>
-            </div>
+            </motion.div>
           )}
 
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={() => router.back()}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="btn-secondary"
             >
               Cancel
             </button>
@@ -231,7 +233,7 @@ export default function NewAssignmentPage() {
               disabled={
                 loading || !formData.title || !formData.content || !aiResponse
               }
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="btn-primary"
             >
               {loading ? (
                 <>
@@ -245,6 +247,6 @@ export default function NewAssignmentPage() {
           </div>
         </form>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -2,23 +2,43 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
-import type { SchoolDetails } from "@/types";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { motion } from "framer-motion";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+
+const YEAR_LEVELS = [
+  { value: "1", label: "1st Year" },
+  { value: "2", label: "2nd Year" },
+  { value: "3", label: "3rd Year" },
+  { value: "4", label: "4th Year" },
+  { value: "5", label: "5th Year" },
+  { value: "graduate", label: "Graduate" },
+] as const;
+
+type Field = {
+  name: string;
+  label: string;
+  type: "text" | "select";
+  placeholder?: string;
+  value: string;
+  options?: typeof YEAR_LEVELS;
+};
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const supabase = createClientComponentClient();
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [schoolDetails, setSchoolDetails] = useState<SchoolDetails>({
+  const [currentStep, setCurrentStep] = useState(0);
+  const [schoolDetails, setSchoolDetails] = useState({
     school_name: "",
     student_number: "",
     program: "",
-    class: "",
-    department: "",
+    year_level: "",
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     setSchoolDetails((prev) => ({
       ...prev,
@@ -26,9 +46,9 @@ export default function OnboardingPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
 
     try {
@@ -37,162 +57,192 @@ export default function OnboardingPage() {
         error: userError,
       } = await supabase.auth.getUser();
       if (userError) throw userError;
+      if (!user) throw new Error("No user found");
 
-      if (!user) {
-        throw new Error("No user found");
-      }
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          school_details: schoolDetails,
+          onboarding_completed: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
 
-      // Update user profile with school details
-      const { error: updateError } = await supabase.from("profiles").upsert({
-        id: user.id,
-        school_details: schoolDetails,
-        updated_at: new Date().toISOString(),
-      });
-
-      if (updateError) throw updateError;
-
-      // Redirect to dashboard
+      if (profileError) throw profileError;
       router.push("/dashboard");
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      router.refresh();
+    } catch (error: any) {
+      setError(error.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  const steps = [
+    {
+      title: "School Information",
+      fields: [
+        {
+          name: "school_name",
+          label: "School Name",
+          type: "text",
+          placeholder: "e.g. University of Technology",
+          value: schoolDetails.school_name,
+        },
+        {
+          name: "student_number",
+          label: "Student Number",
+          type: "text",
+          placeholder: "e.g. 2023-12345",
+          value: schoolDetails.student_number,
+        },
+      ] as Field[],
+    },
+    {
+      title: "Program Details",
+      fields: [
+        {
+          name: "program",
+          label: "Program/Course",
+          type: "text",
+          placeholder: "e.g. Computer Science",
+          value: schoolDetails.program,
+        },
+        {
+          name: "year_level",
+          label: "Year Level",
+          type: "select",
+          options: YEAR_LEVELS,
+          value: schoolDetails.year_level,
+        },
+      ] as Field[],
+    },
+  ];
+
+  const currentStepData = steps[currentStep];
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-          Complete Your Profile
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-          Please provide your school details to continue
-        </p>
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
+    >
+      <div className="card px-4 py-8 sm:px-10">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <h2 className="text-center text-2xl font-bold text-gray-900 dark:text-white">
+            {currentStepData.title}
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+            Step {currentStep + 1} of {steps.length}
+          </p>
+        </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900 p-4 rounded-md">
-                <p className="text-sm text-red-700 dark:text-red-200">
-                  {error}
-                </p>
-              </div>
+        {/* Progress Bar */}
+        <div className="mt-6 relative">
+          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+            <motion.div
+              className="h-full bg-primary-500 rounded-full"
+              initial={{ width: "0%" }}
+              animate={{
+                width: `${((currentStep + 1) / steps.length) * 100}%`,
+              }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/50 p-4 rounded-xl">
+              <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            {currentStepData.fields.map((field) => (
+              <motion.div
+                key={field.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <label
+                  htmlFor={field.name}
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {field.label}
+                </label>
+                <div className="mt-1">
+                  {field.type === "select" ? (
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      required
+                      value={field.value}
+                      onChange={handleChange}
+                      className="input-primary"
+                    >
+                      <option value="">Select year level</option>
+                      {field.type === "select" &&
+                        field.options?.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.type}
+                      id={field.name}
+                      name={field.name}
+                      required
+                      value={field.value}
+                      onChange={handleChange}
+                      className="input-primary"
+                      placeholder={field.placeholder}
+                    />
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="flex justify-between">
+            {currentStep > 0 && (
+              <button
+                type="button"
+                onClick={() => setCurrentStep(currentStep - 1)}
+                className="btn-secondary"
+              >
+                Previous
+              </button>
             )}
-
-            <div>
-              <label
-                htmlFor="school_name"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+            {currentStep < steps.length - 1 ? (
+              <button
+                type="button"
+                onClick={() => setCurrentStep(currentStep + 1)}
+                className="btn-primary ml-auto"
               >
-                School/Institution Name
-              </label>
-              <div className="mt-1">
-                <input
-                  id="school_name"
-                  name="school_name"
-                  type="text"
-                  required
-                  value={schoolDetails.school_name}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="student_number"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-200"
-              >
-                Student Number
-              </label>
-              <div className="mt-1">
-                <input
-                  id="student_number"
-                  name="student_number"
-                  type="text"
-                  required
-                  value={schoolDetails.student_number}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="program"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-200"
-              >
-                Program
-              </label>
-              <div className="mt-1">
-                <input
-                  id="program"
-                  name="program"
-                  type="text"
-                  required
-                  value={schoolDetails.program}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="class"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-200"
-              >
-                Class
-              </label>
-              <div className="mt-1">
-                <input
-                  id="class"
-                  name="class"
-                  type="text"
-                  required
-                  value={schoolDetails.class}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="department"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-200"
-              >
-                Department (Optional)
-              </label>
-              <div className="mt-1">
-                <input
-                  id="department"
-                  name="department"
-                  type="text"
-                  value={schoolDetails.department}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div>
+                Next
+              </button>
+            ) : (
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                disabled={isLoading}
+                className="btn-primary ml-auto"
               >
-                {loading ? "Saving..." : "Complete Profile"}
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner className="h-4 w-4 mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  "Complete Profile"
+                )}
               </button>
-            </div>
-          </form>
-        </div>
+            )}
+          </div>
+        </form>
       </div>
-    </div>
+    </motion.div>
   );
 }

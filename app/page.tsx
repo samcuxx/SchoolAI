@@ -9,9 +9,20 @@ export default async function Home() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (session) {
-    redirect("/dashboard");
-  } else {
+  if (!session) {
     redirect("/login");
   }
+
+  // Check if user has completed onboarding
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("onboarding_completed")
+    .eq("id", session.user.id)
+    .single();
+
+  if (!profile?.onboarding_completed) {
+    redirect("/onboarding");
+  }
+
+  redirect("/dashboard");
 }
