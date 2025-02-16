@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
+import { useRouter, usePathname } from "next/navigation";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard" },
@@ -12,11 +12,33 @@ const navigation = [
 ];
 
 export default function Navigation() {
+  const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const supabase = createClientComponentClient();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    if (isSigningOut) return; // Prevent multiple clicks
+
+    setIsSigningOut(true);
+    try {
+      // Clear any stored data/cache if needed
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      // Force a hard redirect to the login page
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Error signing out:", error);
+      setIsSigningOut(false);
+      // Optionally show an error message to the user
+      alert("Failed to sign out. Please try again.");
+    }
   };
 
   return (
@@ -52,9 +74,10 @@ export default function Navigation() {
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             <button
               onClick={handleSignOut}
-              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={isSigningOut}
+              className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              Sign out
+              {isSigningOut ? "Signing out..." : "Sign out"}
             </button>
           </div>
 
@@ -117,9 +140,10 @@ export default function Navigation() {
           ))}
           <button
             onClick={handleSignOut}
-            className="w-full text-left block pl-3 pr-4 py-2 border-l-4 border-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 text-base font-medium"
+            disabled={isSigningOut}
+            className="w-full text-left block pl-3 pr-4 py-2 border-l-4 border-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 text-base font-medium disabled:opacity-50"
           >
-            Sign out
+            {isSigningOut ? "Signing out..." : "Sign out"}
           </button>
         </div>
       </div>

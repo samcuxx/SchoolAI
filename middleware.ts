@@ -29,9 +29,10 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith("/onboarding")
   ) {
     if (!session) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      const redirectUrl = new URL("/login", req.url);
+      redirectUrl.searchParams.set("redirectedFrom", req.nextUrl.pathname);
+      return NextResponse.redirect(redirectUrl);
     }
-    return res;
   }
 
   return res;
