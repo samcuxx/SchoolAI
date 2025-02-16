@@ -20,7 +20,7 @@ export async function generatePDF(
 ) {
   try {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage();
+    let page = pdfDoc.addPage();
     const { width, height } = page.getSize();
 
     // Get the font using our mapping

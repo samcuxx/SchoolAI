@@ -1,12 +1,12 @@
 import AssignmentDetail from "./AssignmentDetail";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function AssignmentPage({ params }: PageProps) {
-  const { id } = await Promise.resolve(params);
+  const { id } = await params;
   return <AssignmentDetail id={id} />;
 }

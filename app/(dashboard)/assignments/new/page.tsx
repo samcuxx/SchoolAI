@@ -14,7 +14,7 @@ export default function NewAssignmentPage() {
     content: "",
   });
   const [aiResponse, setAiResponse] = useState("");
-  const [aiModel, setAiModel] = useState<"openai" | "gemini">("openai");
+  const [aiModel, setAiModel] = useState<"gemini" | "openai">("gemini");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -173,8 +173,10 @@ export default function NewAssignmentPage() {
                 }
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md dark:bg-gray-700 dark:text-white"
               >
-                <option value="openai">OpenAI</option>
                 <option value="gemini">Gemini</option>
+                <option value="openai" disabled>
+                  ChatGPT (Out of Credit)
+                </option>
               </select>
             </div>
 

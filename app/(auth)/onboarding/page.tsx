@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import type { SchoolDetails } from "@/supabase/types";
+import type { SchoolDetails } from "@/types";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -11,11 +11,10 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
   const [schoolDetails, setSchoolDetails] = useState<SchoolDetails>({
     school_name: "",
-    institution_name: "",
-    index_number: "",
-    address: "",
-    class: "",
+    student_number: "",
     program: "",
+    class: "",
+    department: "",
   });
 
   const handleChange = (
@@ -88,7 +87,7 @@ export default function OnboardingPage() {
                 htmlFor="school_name"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-200"
               >
-                School Name
+                School/Institution Name
               </label>
               <div className="mt-1">
                 <input
@@ -105,18 +104,18 @@ export default function OnboardingPage() {
 
             <div>
               <label
-                htmlFor="institution_name"
+                htmlFor="student_number"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-200"
               >
-                Institution Name
+                Student Number
               </label>
               <div className="mt-1">
                 <input
-                  id="institution_name"
-                  name="institution_name"
+                  id="student_number"
+                  name="student_number"
                   type="text"
                   required
-                  value={schoolDetails.institution_name}
+                  value={schoolDetails.student_number}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
@@ -125,38 +124,18 @@ export default function OnboardingPage() {
 
             <div>
               <label
-                htmlFor="index_number"
+                htmlFor="program"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-200"
               >
-                Index Number
+                Program
               </label>
               <div className="mt-1">
                 <input
-                  id="index_number"
-                  name="index_number"
+                  id="program"
+                  name="program"
                   type="text"
                   required
-                  value={schoolDetails.index_number}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="address"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-200"
-              >
-                School Address
-              </label>
-              <div className="mt-1">
-                <textarea
-                  id="address"
-                  name="address"
-                  rows={3}
-                  required
-                  value={schoolDetails.address}
+                  value={schoolDetails.program}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
@@ -185,18 +164,17 @@ export default function OnboardingPage() {
 
             <div>
               <label
-                htmlFor="program"
+                htmlFor="department"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-200"
               >
-                Program
+                Department (Optional)
               </label>
               <div className="mt-1">
                 <input
-                  id="program"
-                  name="program"
+                  id="department"
+                  name="department"
                   type="text"
-                  required
-                  value={schoolDetails.program}
+                  value={schoolDetails.department}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />

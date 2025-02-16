@@ -2,27 +2,37 @@
 
 import { useState } from "react";
 import { generateWithOpenAI, generateWithGemini } from "@/lib/ai/config";
+import { formatAIResponse } from "@/lib/utils/textFormatter";
 
 interface AssignmentInputProps {
   onResponse: (response: string) => void;
 }
 
+const PROMPT_PREFIX = `Please provide a clear and detailed answer to the following question. Write your response in plain text format, using simple titles followed by colons and regular paragraph breaks to organize the information. For any lists, use simple numbers (1., 2., 3.) or dashes (-).
+
+Question to answer:
+
+`;
+
 export default function AssignmentInput({ onResponse }: AssignmentInputProps) {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [aiModel, setAiModel] = useState<"openai" | "gemini">("openai");
+  const [aiModel, setAiModel] = useState<"gemini" | "openai">("gemini");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      const fullPrompt = PROMPT_PREFIX + prompt;
       const response =
         aiModel === "openai"
-          ? await generateWithOpenAI(prompt)
-          : await generateWithGemini(prompt);
+          ? await generateWithOpenAI(fullPrompt)
+          : await generateWithGemini(fullPrompt);
 
-      onResponse(response || "");
+      // Format and clean the response
+      const formattedResponse = formatAIResponse(response || "");
+      onResponse(formattedResponse);
     } catch (error) {
       console.error("Error generating response:", error);
     } finally {
@@ -60,11 +70,13 @@ export default function AssignmentInput({ onResponse }: AssignmentInputProps) {
           <select
             id="ai-model"
             value={aiModel}
-            onChange={(e) => setAiModel(e.target.value as "openai" | "gemini")}
+            onChange={(e) => setAiModel(e.target.value as "gemini" | "openai")}
             className="mt-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-600"
           >
-            <option value="openai">OpenAI</option>
             <option value="gemini">Gemini</option>
+            <option value="openai" disabled>
+              OpenAI (Out of Credit)
+            </option>
           </select>
         </div>
 
