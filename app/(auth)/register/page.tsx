@@ -49,18 +49,6 @@ export default function RegisterPage() {
       if (signUpError) throw signUpError;
       if (!user) throw new Error("No user data");
 
-      // Create a profile record
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: user.id,
-          full_name: formData.fullName,
-          email: formData.email,
-          onboarding_completed: false,
-        });
-
-      if (profileError) throw profileError;
-
       router.push("/onboarding");
       router.refresh();
     } catch (error) {

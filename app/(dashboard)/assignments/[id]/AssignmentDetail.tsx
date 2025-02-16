@@ -181,7 +181,7 @@ ${assignment.ai_response}
     >
       {/* Header Card */}
       <div className="card p-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex-1 min-w-0">
             {isEditing ? (
               <input
@@ -190,37 +190,44 @@ ${assignment.ai_response}
                 onChange={(e) =>
                   setAssignment({ ...assignment, title: e.target.value })
                 }
-                className="input-primary text-2xl font-bold"
-                placeholder="Enter assignment title"
+                className="input-primary text-xl font-bold"
+                placeholder="Assignment title"
               />
             ) : (
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate">
                 {assignment.title}
               </h2>
             )}
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Created on {new Date(assignment.created_at).toLocaleDateString()}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
             <button
-              type="button"
               onClick={() => setShowPDFSettings(true)}
-              className="btn-secondary"
+              className="btn-secondary w-full sm:w-auto"
             >
               Export PDF
             </button>
             {isEditing ? (
-              <>
+              <div className="flex gap-2">
                 <button
-                  type="button"
                   onClick={() => setIsEditing(false)}
-                  className="btn-secondary"
+                  className="btn-secondary flex-1 sm:flex-none"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
-                  onClick={() => handleUpdate(assignment)}
+                  onClick={() =>
+                    handleUpdate({
+                      title: assignment.title,
+                      content: assignment.content,
+                      ai_response: assignment.ai_response,
+                    })
+                  }
                   disabled={saving}
-                  className="btn-primary"
+                  className="btn-primary flex-1 sm:flex-none"
                 >
                   {saving ? (
                     <>
@@ -231,12 +238,11 @@ ${assignment.ai_response}
                     "Save"
                   )}
                 </button>
-              </>
+              </div>
             ) : (
               <button
-                type="button"
                 onClick={() => setIsEditing(true)}
-                className="btn-primary"
+                className="btn-primary w-full sm:w-auto"
               >
                 Edit
               </button>
@@ -255,7 +261,7 @@ ${assignment.ai_response}
       <div className="card p-6 space-y-8">
         <div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            Question or Prompt
+            Question
           </h3>
           {isEditing ? (
             <textarea
@@ -264,7 +270,7 @@ ${assignment.ai_response}
               onChange={(e) =>
                 setAssignment({ ...assignment, content: e.target.value })
               }
-              className="input-primary"
+              className="input-primary w-full"
               placeholder="Enter your question or prompt"
             />
           ) : (
@@ -276,7 +282,7 @@ ${assignment.ai_response}
 
         <div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            AI Response
+            Answer
           </h3>
           {isEditing ? (
             <textarea
@@ -285,17 +291,17 @@ ${assignment.ai_response}
               onChange={(e) =>
                 setAssignment({ ...assignment, ai_response: e.target.value })
               }
-              className="input-primary font-mono text-sm"
+              className="input-primary font-mono text-sm w-full"
               placeholder="AI response content"
             />
           ) : (
-            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap overflow-auto">
               {assignment.ai_response}
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">
             Status
           </h3>
@@ -306,7 +312,7 @@ ${assignment.ai_response}
                 status: e.target.value as "draft" | "completed",
               })
             }
-            className="input-primary max-w-[200px]"
+            className="input-primary w-full sm:w-auto sm:max-w-[200px]"
             aria-label="Assignment status"
           >
             <option value="draft">In Progress</option>
@@ -317,13 +323,13 @@ ${assignment.ai_response}
 
       {/* PDF Settings Modal */}
       {showPDFSettings && (
-        <div className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity">
+        <div className="fixed inset-0 bg-gray-500/75 backdrop-blur-sm transition-opacity z-50">
           <div className="fixed inset-0 z-10 overflow-y-auto">
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="card w-full max-w-2xl p-6"
+                className="card w-full max-w-2xl mx-4 p-6"
               >
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
                   Export PDF
@@ -332,11 +338,11 @@ ${assignment.ai_response}
                   initialSettings={pdfSettings}
                   onSettingsChange={setPDFSettings}
                 />
-                <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                   <button
                     type="button"
                     onClick={() => setShowPDFSettings(false)}
-                    className="btn-secondary"
+                    className="btn-secondary w-full sm:w-auto"
                   >
                     Cancel
                   </button>
@@ -344,7 +350,7 @@ ${assignment.ai_response}
                     type="button"
                     onClick={handleExportPDF}
                     disabled={loading}
-                    className="btn-primary"
+                    className="btn-primary w-full sm:w-auto"
                   >
                     {loading ? (
                       <>

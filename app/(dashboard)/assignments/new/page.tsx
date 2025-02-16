@@ -191,7 +191,7 @@ export default function NewAssignmentPage() {
                   Generating...
                 </>
               ) : (
-                "Generate Response"
+                "Generate Answer"
               )}
             </button>
           </div>
