@@ -73,13 +73,15 @@ export default function ProfilePage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+
+    // Handle school details fields
     if (name.startsWith("school_")) {
-      const schoolField = name.replace("school_", "");
+      const fieldName = name; // Don't remove the "school_" prefix
       setFormData((prev) => ({
         ...prev,
         school_details: {
           ...prev.school_details,
-          [schoolField]: value,
+          [fieldName]: value,
         },
       }));
     } else {
