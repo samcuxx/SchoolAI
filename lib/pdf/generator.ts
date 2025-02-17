@@ -16,7 +16,8 @@ export async function generatePDF(
     fontSize: 12,
     fontFamily: "Times-Roman",
     lineHeight: 1.5,
-  }
+  },
+  fullName?: string
 ) {
   try {
     const pdfDoc = await PDFDocument.create();
@@ -39,17 +40,20 @@ export async function generatePDF(
     // Add school details if requested
     if (options.includeSchoolDetails && schoolDetails) {
       const details = [
-        schoolDetails.school_name,
-        `Student Number: ${schoolDetails.student_number}`,
-        `Program: ${schoolDetails.program}`,
-        `Class: ${schoolDetails.class}`,
+        `NAME: ${(fullName || "").toUpperCase()}`,
+        `STUDENT NUMBER: ${schoolDetails.student_number.toUpperCase()}`,
+        `COURSE: ${schoolDetails.program.toUpperCase()}`,
       ];
 
-      // if (schoolDetails.department) {
-      //   details.push(`Department: ${schoolDetails.department}`);
-      // }
-
       for (const detail of details) {
+        // Draw text twice with slight offset to create bold effect
+        page.drawText(detail, {
+          x: 50.5,
+          y: currentY,
+          size: fontSize,
+          font,
+          color: rgb(0, 0, 0),
+        });
         page.drawText(detail, {
           x: 50,
           y: currentY,
@@ -60,60 +64,186 @@ export async function generatePDF(
         currentY -= lineHeight;
       }
 
-      // Add some space after school details
-      currentY -= lineHeight;
+      // currentY -= lineHeight; // Single line height after header
     }
 
     // Split content into lines and draw them
     const maxWidth = width - 100; // 50 points margin on each side
     const lines = content.split("\n");
+    let skipNextEmptyLine = false;
+    let isAfterQuestion = false;
 
     for (const line of lines) {
-      if (line.trim() === "") {
-        // Handle empty lines
-        currentY -= lineHeight;
+      // Skip lines that say "Title:", "Question:", or "Answer:" and skip the assignment title line
+      if (
+        /^(Title|Question|Answer):/.test(line.trim()) ||
+        line.trim().startsWith("Title: ")
+      ) {
+        skipNextEmptyLine = true;
+        isAfterQuestion = line.trim().startsWith("Question:");
         continue;
       }
 
-      const words = line.split(" ");
-      let currentLine = "";
-
-      for (const word of words) {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const lineWidth = font.widthOfTextAtSize(testLine, fontSize);
-
-        if (lineWidth > maxWidth) {
-          // Draw current line
-          page.drawText(currentLine, {
-            x: 50,
-            y: currentY,
-            size: fontSize,
-            font,
-            color: rgb(0, 0, 0),
-          });
-          currentY -= lineHeight;
-          currentLine = word;
-        } else {
-          currentLine = testLine;
+      if (line.trim() === "") {
+        // Handle empty lines
+        if (!skipNextEmptyLine && !isAfterQuestion) {
+          currentY -= lineHeight * 0.5; // Reduce space for empty lines
         }
-
-        // Check if we need a new page
-        if (currentY < 50) {
-          page = pdfDoc.addPage();
-          currentY = height - 50;
-        }
+        skipNextEmptyLine = false;
+        continue;
       }
 
-      // Draw remaining text
-      if (currentLine) {
-        page.drawText(currentLine, {
-          x: 50,
-          y: currentY,
-          size: fontSize,
-          font,
-          color: rgb(0, 0, 0),
+      if (isAfterQuestion && line.trim()) {
+        isAfterQuestion = false;
+      }
+      skipNextEmptyLine = false;
+
+      // Check if line is a bullet point
+      const isBulletPoint = line.trim().startsWith("-");
+      const bulletText = isBulletPoint ? line.trim().substring(1).trim() : line;
+
+      // Process inline bold text and titles
+      const parts = [];
+      let currentText = bulletText;
+      let startIndex = currentText.indexOf("**");
+
+      while (startIndex !== -1) {
+        // Add non-bold text before the **
+        if (startIndex > 0) {
+          parts.push({
+            text: currentText.substring(0, startIndex),
+            bold: false,
+          });
+        }
+
+        // Find closing **
+        const endIndex = currentText.indexOf("**", startIndex + 2);
+        if (endIndex === -1) break;
+
+        // Add bold text
+        parts.push({
+          text: currentText.substring(startIndex + 2, endIndex),
+          bold: true,
         });
-        currentY -= lineHeight;
+
+        currentText = currentText.substring(endIndex + 2);
+        startIndex = currentText.indexOf("**");
+      }
+
+      // Add remaining text
+      if (currentText) {
+        parts.push({ text: currentText, bold: false });
+      }
+
+      // If no ** found, treat as single part
+      if (parts.length === 0) {
+        parts.push({ text: bulletText, bold: false });
+      }
+
+      // Process each part
+      for (const part of parts) {
+        const words = part.text.split(" ");
+        let currentLine = "";
+
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const lineWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+          if (lineWidth > maxWidth - (isBulletPoint ? 20 : 0)) {
+            // Draw current line
+            if (part.bold) {
+              // Draw bold text
+              page.drawText(currentLine, {
+                x: isBulletPoint ? 70.5 : 50.5,
+                y: currentY,
+                size: fontSize,
+                font,
+                color: rgb(0, 0, 0),
+              });
+              page.drawText(currentLine, {
+                x: isBulletPoint ? 70 : 50,
+                y: currentY,
+                size: fontSize,
+                font,
+                color: rgb(0, 0, 0),
+              });
+            } else {
+              // Draw normal text
+              page.drawText(currentLine, {
+                x: isBulletPoint ? 70 : 50,
+                y: currentY,
+                size: fontSize,
+                font,
+                color: rgb(0, 0, 0),
+              });
+            }
+
+            // Draw bullet point if it's the first line
+            if (isBulletPoint && currentLine === words[0]) {
+              page.drawText("•", {
+                x: 50,
+                y: currentY,
+                size: fontSize,
+                font,
+                color: rgb(0, 0, 0),
+              });
+            }
+
+            currentY -= lineHeight;
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+
+          // Check if we need a new page
+          if (currentY < 50) {
+            page = pdfDoc.addPage();
+            currentY = height - 50;
+          }
+        }
+
+        // Draw remaining text
+        if (currentLine) {
+          if (part.bold) {
+            // Draw bold text
+            page.drawText(currentLine, {
+              x: isBulletPoint ? 70.5 : 50.5,
+              y: currentY,
+              size: fontSize,
+              font,
+              color: rgb(0, 0, 0),
+            });
+            page.drawText(currentLine, {
+              x: isBulletPoint ? 70 : 50,
+              y: currentY,
+              size: fontSize,
+              font,
+              color: rgb(0, 0, 0),
+            });
+          } else {
+            // Draw normal text
+            page.drawText(currentLine, {
+              x: isBulletPoint ? 70 : 50,
+              y: currentY,
+              size: fontSize,
+              font,
+              color: rgb(0, 0, 0),
+            });
+          }
+
+          // Draw bullet point if it's the first line
+          if (isBulletPoint && currentLine === words[0]) {
+            page.drawText("•", {
+              x: 50,
+              y: currentY,
+              size: fontSize,
+              font,
+              color: rgb(0, 0, 0),
+            });
+          }
+
+          currentY -= lineHeight;
+        }
       }
     }
 

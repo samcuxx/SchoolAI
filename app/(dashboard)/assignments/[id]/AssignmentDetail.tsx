@@ -27,6 +27,7 @@ export default function AssignmentDetail({ id }: AssignmentDetailProps) {
   const [schoolDetails, setSchoolDetails] = useState<SchoolDetails | null>(
     null
   );
+  const [userFullName, setUserFullName] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,7 +50,7 @@ export default function AssignmentDetail({ id }: AssignmentDetailProps) {
 
         setAssignment(assignmentData);
 
-        // Fetch user's school details
+        // Fetch user's details
         const {
           data: { user },
           error: userError,
@@ -59,13 +60,14 @@ export default function AssignmentDetail({ id }: AssignmentDetailProps) {
         if (user) {
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
-            .select("school_details")
+            .select("school_details, full_name")
             .eq("id", user.id)
             .single();
 
           if (profileError) throw profileError;
 
           setSchoolDetails(profileData.school_details);
+          setUserFullName(profileData.full_name || "");
         }
       } catch (error) {
         setError(error instanceof Error ? error.message : "An error occurred");
@@ -120,7 +122,8 @@ ${assignment.ai_response}
         pdfSettings.includeSchoolDetails
           ? schoolDetails || undefined
           : undefined,
-        pdfSettings
+        pdfSettings,
+        userFullName
       );
 
       // Create a blob and download the PDF
