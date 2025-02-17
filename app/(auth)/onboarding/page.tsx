@@ -11,8 +11,7 @@ const YEAR_LEVELS = [
   { value: "2", label: "2nd Year" },
   { value: "3", label: "3rd Year" },
   { value: "4", label: "4th Year" },
-  { value: "5", label: "5th Year" },    
-  { value: "6", label: "6th Year" },    
+  { value: "5", label: "5th Year" },
   { value: "graduate", label: "Graduate" },
 ] as const;
 
@@ -65,7 +64,7 @@ export default function OnboardingPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    
     if (!isCurrentStepValid()) {
       setError("Please fill out all fields in this section");
       return;
