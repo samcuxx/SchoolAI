@@ -78,7 +78,7 @@ export default function NewAssignmentPage() {
         title: formData.title,
         content: formData.content,
         ai_response: aiResponse,
-        status: "draft",
+        status: "completed",
       });
 
       if (insertError) throw insertError;

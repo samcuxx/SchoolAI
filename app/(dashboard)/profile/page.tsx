@@ -270,7 +270,7 @@ export default function ProfilePage() {
                 value={formData.school_details.class}
                 onChange={handleChange}
                 className="input-primary mt-1"
-                required
+                
               />
             </div>
 
