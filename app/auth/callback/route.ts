@@ -15,11 +15,7 @@ export async function GET(request: Request) {
 
     // Create a new supabase client using route handler
     const supabase = createRouteHandlerClient({
-      cookies,
-      options: {
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-        supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      }
+      cookies
     })
 
     // Exchange the code for a session
