@@ -76,7 +76,7 @@ export default function ProfilePage() {
 
     // Handle school details fields
     if (name.startsWith("school_")) {
-      const fieldName = name; // Don't remove the "school_" prefix
+      const fieldName = name.replace("school_", ""); // Remove the "school_" prefix
       setFormData((prev) => ({
         ...prev,
         school_details: {
